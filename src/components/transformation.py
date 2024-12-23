@@ -95,13 +95,14 @@ class DataTransformation:
             ]
             test_arr = np.c_[input_feature_test_arr, np.array(target_feature_test_df)]
             
-            logging.info(f"saved preprocessing object")
+            
             
             save_object(
                 file_path=self.data_transformation_config.preprocessor_ob_file_path,
                 obj=preprocessor_obj
                 
             )
+            logging.info(f"saved preprocessing object")
             
             return (
                 train_arr,
