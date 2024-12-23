@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 from dataclasses import dataclass
 
 from transformation import DataTransformation
+from train import ModelTrainer, ModelTrainerConfig
 
 @dataclass
 class DataIngestionConfig:
@@ -51,5 +52,9 @@ if __name__=="__main__":
     train_data, test_data = obj.initiate_data_ingestion()
     
     data_transformation = DataTransformation()
-    data_transformation.initiate_data_transformation(train_data, test_data)
+    train_arr, test_arr, _ = data_transformation.initiate_data_transformation(train_data, test_data)
+    
+    model_trainer = ModelTrainer()
+    score, best_model = model_trainer.initiate_model_training(train_arr, test_arr)
+    print(f"The highest model accuracy is {score * 100:.2f} and the best model is {best_model}")
     
