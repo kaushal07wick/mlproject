@@ -1,6 +1,7 @@
 import os 
 import sys 
 from dataclasses import dataclass 
+import yaml
 
 from catboost import CatBoostRegressor 
 from sklearn.ensemble import (
@@ -19,6 +20,21 @@ from src.exception import CustomException
 from src.logger import logging
 from src.utils import save_object, evaluate_model
 
+yaml_file = './src/models.yaml'
+def load_models(yaml_file):
+    with open(yaml_file, 'r') as file:
+        data = yaml.safe_load(file)
+    model_params = data['models']
+    
+    models = {}
+    for model_name, model_info in model_params.items():
+        model_class = globals().get(model_info['model'])
+        if model_class:
+            models[model_name] = {
+                'model': model_class(),
+                'params': model_info['params']
+            }
+    return models 
 
 @dataclass
 class ModelTrainerConfig:
@@ -37,16 +53,8 @@ class ModelTrainer:
                 test_arr[:,:-1],
                 test_arr[:,-1]
             )
-            models = {
-                'Random Forest': RandomForestRegressor(),
-                'Decision Tree': DecisionTreeRegressor(),
-                'Gradient Boosting':GradientBoostingRegressor(),
-                'Linear Regression':LinearRegression(),
-                'K-Neighbors Regressor': KNeighborsRegressor(),
-                'XGBRegressor': XGBRegressor(),
-                'CatBoost Regressor': CatBoostRegressor(),
-                'AdaBoost Regresor': AdaBoostRegressor(),
-            }
+
+            models = load_models(yaml_file)
             
             model_report:dict = evaluate_model(X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test,models=models)
             
@@ -54,22 +62,22 @@ class ModelTrainer:
             best_model_score = max(sorted(model_report.values()))
             
             # to get the best model name from dict 
-            best_mode_name  = list(model_report.keys())[
+            best_model_name = list(model_report.keys())[
                 list(model_report.values()).index(best_model_score)
             ]
             
-            best_model = models[best_mode_name]
+            # Get the model instance for the best model
+            best_model = models[best_model_name]['model']
             
-            if best_model_score<0.6:
+            if best_model_score < 0.6:
                 raise CustomException("No best model found!")
             
-            save_object(
-                file_path=self.model_trainer_config.trained_model_file_path,
-                obj=best_model
-            )
+            # Save the best model to file
+            save_object(file_path=self.model_trainer_config.trained_model_file_path, obj=best_model)
             
             logging.info("Best model saved as .pkl")
             
+            # Predict using the best model
             predicted = best_model.predict(X_test)
             r2score = r2_score(y_test, predicted)
             return r2score, best_model

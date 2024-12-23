@@ -6,6 +6,7 @@ import dill
 from src.exception import CustomException 
 from src.logger import logging 
 from sklearn.metrics import r2_score
+from sklearn.model_selection import GridSearchCV
 
 def save_object(file_path, obj):
     try:
@@ -22,8 +23,14 @@ def save_object(file_path, obj):
 def evaluate_model(X_train, y_train, X_test, y_test, models):
     try:
         report = {}
-        for i in range(len(list(models))):
-            model = list(models.values())[i]
+        for model_name, model_info in models.items():
+            model = model_info['model']
+            param = model_info['params']
+            
+            gs = GridSearchCV(model, param, cv=3)
+            gs.fit(X_train, y_train)
+            
+            model.set_params(**gs.best_params_)
             
             model.fit(X_train, y_train)  #train the model 
             
@@ -35,7 +42,7 @@ def evaluate_model(X_train, y_train, X_test, y_test, models):
             
             test_model_score = r2_score(y_test, y_test_pred)
             
-            report[list(models.keys())[i]] = test_model_score
+            report[model_name] = test_model_score
         
         return report 
 
